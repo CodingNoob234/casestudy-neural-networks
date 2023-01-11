@@ -12,8 +12,8 @@ class Net(nn.Module):
         super(Net, self).__init__()
 
         # two simple layers operation: y = Wx + b
-        self.fc1 = nn.Linear(50, 20) 
-        self.fc2 = nn.Linear(20, 10)
+        self.fc1 = nn.Linear(10, 5) 
+        self.fc2 = nn.Linear(5, 1)
 
     def forward(self, x):
         """ feed forward a given input through 2 layers """
@@ -24,19 +24,18 @@ class Net(nn.Module):
       
 # features and targets
 features, targets = torch.load #....    
-  
+
 # initialize model and define loss function, optimizer
 net = Net()
 optimizer = optim.SGD(net.parameters(), lr=0.01)
 criterion = nn.MSELoss()
-optimizer = optim.SGD(net.parameters(), lr=0.01)
 
 # estimate the model
 epochs = 10
-epoch = 0
 
-for epoch in range(epochs)
-while loss < crit_loss and epoch:
+show_accuracy = False
+
+for epoch in enumerate(1, epochs):
   
     # set gradient of optimizer at zero
     optimizer.zero_grad() 
@@ -50,4 +49,6 @@ while loss < crit_loss and epoch:
     
     # update parameters
     optimizer.step()    # Does the update
-    iter += 1
+    
+    if show_accuracy:
+        
