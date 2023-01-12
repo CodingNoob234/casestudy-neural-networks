@@ -1,83 +1,101 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-class Net(nn.Module):
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
 
-    def __init__(self, layers = []):
+class Net(nn.Module):
+    """ This class holds our model with 2 layers """
+    def __init__(self, lags, nodes = []):
         # initialize nn.Module
         super(Net, self).__init__()
-
-        # define model
-        self.n_layers = n_layers = len(layers)
-        if self.n_layers < 2:
-            raise ValueError(f"Model must have at least 2 layers (input to output); now has {n_layers}")
-        
+    
+        assert len(nodes) == 3, "length nodes must be equal to number of layers"
+    
         # initialize layers
-        self.fc1 = nn.Linear(10, 5)
-        self.fc2 = nn.Linear(5, 1)
+        self.fc1 = nn.Linear(lags, nodes[0])
+        self.fc2 = nn.Linear(nodes[0], nodes[1])
+        self.fc3 = nn.Linear(nodes[1], nodes[2])
+        self.fc4 = nn.Linear(nodes[2], 1)
 
     def forward(self, x):
         """ feed forward a given input through 2 layers """
                 
         # feed forward
-        x = torch.flatten(x,1)
+        # x = torch.flatten(x,1)
         x = F.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
         return x
     
     
 class SimpleNeuralNetwork():
-    def __init__(self, features: torch.Tensor, targets: torch.Tensor, layers = [20, 10, 10, 1]):
+    """
+    This model suits as an extra layer on top of the model.
+    This way, for estimating a certain model, we only need to call
+    
+    mod = SimpleNeuralNetwork(features, targets)
+    mod.fit()
+    mod.predict(features_test)
+    """
+    
+    def __init__(self, lags, nodes):
+        # init model params
+        self.model = Net(lags, nodes)
+        
+    def fit(self, data, features_val: torch.Tensor = None, targets_val: torch.Tensor = None, epochs: float = 10, lr: float = 0.01, batch_size: int = 50):
         # validate data
-        if not ( isinstance(features, torch.Tensor) and isinstance(targets, torch.Tensor) ):
-            raise TypeError("both features and targets must be of type torch.Tensor")
+        trainloader = torch.utils.data.DataLoader(data, batch_size = batch_size, shuffle = True)
         
-        # store data and init model
-        self.features, self.targets = features, targets
-        self.model = Net(layers)
-        
-        print(self.model)
-        
-        
-    def fit(self, epochs, show_accuracy = False):
-        
-        # initialize model and define loss function, optimizer
-        # LATER PASS THESE AS PARAMETERS, ALSO FOR GRID SEARCH
-        
-        trainset = torch.utils.data.DataLoader(self.features, batch_size = 10, shuffle = True)
-        
-        
-        
-        optimizer = optim.SGD(self.model.parameters(), lr=0.01)
+        optimizer = optim.SGD(self.model.parameters(), lr=lr)
         criterion = nn.MSELoss()
+        # criterion = nn.NLLLoss()
 
-        for epoch in enumerate(range(epochs), 1):
+        for epoch in range(1, epochs + 1):
 
             running_loss = 0.0
             for i, data in enumerate(trainloader, 0):
+                
+                batch_features, batch_targets = data
             
                 # set gradient of optimizer at zero
                 optimizer.zero_grad() 
                 
                 # compute the forecast of the model
-                output = self.model(self.features)
+                output = self.model(batch_features)
                 
                 # compute the loss
-                loss = criterion(output, self.targets)
+                loss = criterion(output, batch_targets)
                 loss.backward()
                 
                 # update parameters
                 optimizer.step()
                 
-                print(f"--------epoch {epoch}--------")
-                print(f"trainig loss: {loss}")
+                running_loss += (loss.item()*batch_size)
+
+            print("-" * 100)
+            print(f"epoch: {epoch}")
+            print(f"trainig loss: {running_loss}")
+            if features_val and targets_val:
+                output = self.model(features_val)
+                loss = criterion(output, targets_val)
+                print("validation loss: {loss.item()}")
                 
     def predict(self, features):
         return self.model(features)
+    
+# def scale_data(train_data, test_data):
+#     train_x, train_y = [], [train_data]
+#     scaler = StandardScaler()
+#     scaler.fit_transform()
+#     return 
     
 
 def get_ticker_data(ticker = "MSFT"):
@@ -89,18 +107,39 @@ def get_ticker_data(ticker = "MSFT"):
 def test():
     # get data from yahoo finance, square to get volatility
     data = get_ticker_data("MSFT")
-    ret = (data["Close"].apply(np.log).diff()) ** 2
-    
+    targets = (data["Close"].apply(np.log).diff()) ** 2
+        
     # create lagged values as features
     lags = 10
     features = pd.DataFrame({})
-    for i in range(lags):
-        features[f"lag_{i}"] = ret.shift(i)
+    for i in range(1, lags + 1):
+        features[f"lag_{i}"] = targets.shift(i)
+    features = features.values.reshape(-1,lags)
+    targets = targets.values.reshape(-1,1)
+    
+    print(f"The targets are of shape: {targets.shape}")
+    print(f"The features are of shape: {features.shape}")
+    
+    # drop nan values
+    features = features[lags+1:-max(1, int(.3*lags))]
+    targets = targets[lags+1:-max(1, int(.3*lags))]
     
     # load data in tensors
-    features, targets = torch.tensor(features.values, dtype=torch.float32), torch.tensor(ret.values, dtype=torch.float32)
-    s = SimpleNeuralNetwork(features, targets, layers = [lags, 5, 1])
-    s.fit(epochs = 10)
-    s.predict(features)
+    features, targets = torch.tensor(features, dtype=torch.float32), torch.tensor(targets, dtype=torch.float32)
 
+    features, features_test, targets, targets_test = train_test_split(features, targets, train_size = .8)
+
+    data = [(feature, target) for feature, target in zip(features, targets)]
+    
+    # init and estimate the model
+    s = SimpleNeuralNetwork(lags, nodes = [160, 480, 256])
+    s.fit(data, epochs = 10, lr = .1, batch_size = 20)
+    
+    # prediction = s.predict(features).detach().numpy()
+    # plt.plot(targets.detach().numpy(), label = "target")
+    # plt.plot(prediction, label = "pred")
+    # plt.legend()
+    # plt.ylim(0, 0.01)
+    # plt.show()
+    
 test()
