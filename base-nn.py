@@ -21,8 +21,7 @@ class Net(nn.Module):
         # initialize layers
         self.fc1 = nn.Linear(lags, nodes[0])
         self.fc2 = nn.Linear(nodes[0], nodes[1])
-        self.fc3 = nn.Linear(nodes[1], nodes[2])
-        self.fc4 = nn.Linear(nodes[2], 1)
+        self.fc3 = nn.Linear(nodes[1], 1)
 
     def forward(self, x):
         """ feed forward a given input through 2 layers """
@@ -31,8 +30,7 @@ class Net(nn.Module):
         # x = torch.flatten(x,1)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        x = F.relu(self.fc4(x))
+        x = self.fc3(x)
         return x
     
     
@@ -50,7 +48,14 @@ class SimpleNeuralNetwork():
         # init model params
         self.model = Net(lags, nodes)
         
-    def fit(self, data, features_val: torch.Tensor = None, targets_val: torch.Tensor = None, epochs: float = 10, lr: float = 0.01, batch_size: int = 50):
+    def fit(self, data, 
+            features_val: torch.Tensor = None, 
+            targets_val: torch.Tensor = None, 
+            epochs: float = 10, 
+            lr: float = 0.01, 
+            batch_size: int = 50
+        ):
+        
         # validate data
         trainloader = torch.utils.data.DataLoader(data, batch_size = batch_size, shuffle = True)
         
@@ -63,21 +68,23 @@ class SimpleNeuralNetwork():
             running_loss = 0.0
             for i, data in enumerate(trainloader, 0):
                 
+                # get features and targets from the mini batch
                 batch_features, batch_targets = data
             
-                # set gradient of optimizer at zero
-                optimizer.zero_grad() 
+                # reset gradient optimizer
+                optimizer.zero_grad()
                 
-                # compute the forecast of the model
+                # predict the batch targets
                 output = self.model(batch_features)
                 
-                # compute the loss
+                # compute the loss and .backward() computes the gradient respective to the loss function
                 loss = criterion(output, batch_targets)
                 loss.backward()
                 
-                # update parameters
+                # update parameters (something like params += -learning_rate * gradient)
                 optimizer.step()
                 
+                # keep track of loss to log improvements of the fit
                 running_loss += (loss.item()*batch_size)
 
             print("-" * 100)
