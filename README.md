@@ -26,5 +26,7 @@ The main.ipynb notebook file is build up in a list of steps:
 - Both models predict the testing data and are compared on their mean squared error performance.
 
 ## Code Improvements
-- change to code so it complies to the above mentioned method
-- more generalizations and functions to be more flexible
+- A big problem that seems to arise is the inconsistency of the trained neural network. The occurence of this problem is well known and the torch documentation provides some explanation how to tackle this partially.
+- Generalize more functions.
+- Look if there is a torch model builder so you can pass the number of layers etc. as variables to a function/class that automatically initializes the model and forward function.
+- Some of the data processing can be standardized into functions.
