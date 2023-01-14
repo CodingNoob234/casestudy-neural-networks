@@ -25,5 +25,5 @@ def get_ticker_daily_close(ticker = "MSFT"):
 def reset_model_weights(m: nn.Module):
     """ Resets all weights of the neural network to those at initialization """
     for layer in m.children():
-        if hasttr(layer, "reset_parameters"):
+        if hasattr(layer, "reset_parameters"):
             layer.reset_parameters()
