@@ -3,10 +3,20 @@ import numpy as np
 import torch.utils
 import torch.optim as optim
 import torch.nn.functional as F
+import torch.nn as nn
 
-def model_estimator(model, optimizer, criterion, epochs, trainloader, testloader=None, verbose = 0):
-    
-    earlystopper = EarlyStopper(patience = 3, min_delta = 0)
+def model_estimator(
+    model: nn.Module, 
+    optimizer: optim.Optimizer, 
+    criterion, epochs: int, 
+    trainloader: torch.utils.data.DataLoader, 
+    testloader: torch.utils.data.DataLoader = None, 
+    earlystopper = None,
+    verbose: int = 0
+    ) -> None:
+    """
+    Calling this functions estimates a neural network with a given optimizer, criterion, training/testing data among other variables
+    """
     
     for epoch in range(1, epochs+1):
         
@@ -50,8 +60,10 @@ def model_estimator(model, optimizer, criterion, epochs, trainloader, testloader
                 print("validation loss: {np.average(running_loss)}")
             
             # if validation results are not improving    
-            if earlystopper.early_stop(np.average(running_loss)):
-                print(f"early stopping due to no decrease in validation loss at epoch: {epoch}")
+            if earlystopper:
+                if earlystopper.early_stop(np.average(running_loss)):
+                    print(f"Early stopping due to no decrease in validation loss at epoch: {epoch}")
+                    break
             
                 
 class EarlyStopper():
