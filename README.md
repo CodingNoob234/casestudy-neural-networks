@@ -19,11 +19,10 @@ The main.ipynb notebook file is build up in a list of steps:
 - For each kfold, the model is estimated using MSELoss and Adam's version of gradient descent. The number of epochs is fixed to 10, with early stopping options if the performance does not increase.
 - The model specification with the best MSELoss over all kfolds is chosen as the final model specification.
 
-
 ### Final Model Estimation and Comparison
 - According to the determined final model specification, the model is estimated on the complete training data.
 - The HAR model is estimated on exactly the same training data.
-- Both models predict the testing data and are compared on their mean squared error performance.
+- Both models predict the testing data and are compared by MSE.
 
 ## Code Improvements
 - A big problem that seems to arise is the inconsistency of the trained neural network. The occurence of this problem is well known and the torch documentation provides some explanation how to tackle this partially.
