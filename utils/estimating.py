@@ -54,7 +54,6 @@ def model_estimator(
                 batch_features, batch_targets = data
                 output = model(batch_features.float())
                 loss = criterion(output, batch_targets)
-                loss.item()
                 running_loss += [loss.item()]
             if verbose > 0:
                 print("validation loss: {np.average(running_loss)}")
@@ -65,6 +64,29 @@ def model_estimator(
                 if earlystopper.early_stop(np.average(running_loss)):
                     print(f"Early stopping due to no decrease in validation loss at epoch: {epoch}")
                     break
+    
+    # at the end of the estimation, return the last loss on the validation data
+    return np.average(running_loss)
+                    
+                
+def model_evaluater(model: nn.Module, dataloader: torch.utils.data.DataLoader, criterion):
+    """ given a model and dataloader, a prediction is made and average loss per batch (based on provided criterion function) is returned """
+    running_loss = []
+    
+    # for all batches
+    for data in dataloader:
+        batch_features, batch_targets = data
+        
+        # predict
+        output = model(batch_features.float())
+        
+        # compute loss
+        loss = criterion(output, batch_targets)
+        
+        # store loss
+        running_loss += [loss.item()]
+
+    return np.average(running_loss)
                             
                 
 class EarlyStopper():
