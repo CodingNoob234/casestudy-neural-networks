@@ -5,6 +5,12 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch.nn as nn
 
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import TimeSeriesSplit, train_test_split
+
+from utils.functions import reset_model_weights
+from utils.preprocessing import data_to_loaders
+
 def model_estimator(
     model: nn.Module, 
     optimizer: optim.Optimizer, 
@@ -49,12 +55,7 @@ def model_estimator(
             print(f"epoch: {epoch}")
             print(f"trainig loss: {avg_running_loss}")
         if testloader:
-            running_loss = []
-            for data in testloader:
-                batch_features, batch_targets = data
-                output = model(batch_features.float())
-                loss = criterion(output, batch_targets)
-                running_loss += [loss.item()]
+            model_evaluater(model, testloader, criterion)
             if verbose > 0:
                 print("validation loss: {np.average(running_loss)}")
             
@@ -107,3 +108,63 @@ class EarlyStopper():
             if self.counter >= self.patience:
                 return True
         return False
+    
+    
+###############################################################################################################
+###############################################################################################################
+###############################################################################################################
+# MIGHT BE GOOD TO REWRIITE THIS FUNCTION INTO 2 FUNCTIONS, OR A CLASS INSTANCE
+
+def kfolds_fit_and_evaluate_model(model: nn.Module, kfold: TimeSeriesSplit, features: np.ndarray, targets: np.ndarray, lr: float, epochs: int, normalize_features: bool = False) -> float:
+    """ 
+    This functions executes as number of steps:
+    - initialise the model based on provided parameters
+    - divide sample in several "folds" through time
+    - for each kfold, get the training/testing data, normalise the data and put it into training/features dataloaders
+    - estimate the model
+    - predict the validation data and compute the accuracy
+    """
+    # initialise model with provided specification
+    score_nn = []
+
+    i = 0
+    for train_index, test_index in kfold.split(features):
+
+        # reset weights to start estimating from exactly the same initialization for each fold
+        reset_model_weights(model)
+
+        # split data into feature and target data for neural network
+        features_train, features_validation, targets_train, targets_validation = features[train_index], features[test_index], targets[train_index], targets[test_index]
+        
+        # fit normalizer on train features and normalize both training and validation features
+        if normalize_features:
+            scaler = StandardScaler()
+            features_train = scaler.fit_transform(features_train)
+            features_validation = scaler.transform(features_validation)
+
+        # all features and targets to float tensor
+        features_train_tensor = torch.tensor(features_train, dtype=torch.float32)
+        features_validation_tensor = torch.tensor(features_validation, dtype=torch.float32)
+        targets_train_tensor = torch.tensor(targets_train, dtype=torch.float32)
+        targets_validation_tensor = torch.tensor(targets_validation, dtype=torch.float32)
+        
+        # feature/target tensors to dataloaders
+        trainloader, testloader = data_to_loaders(features_train_tensor, features_validation_tensor, targets_train_tensor, targets_validation_tensor)
+                
+        # initialize and estimate the model
+        criterion = nn.MSELoss()
+        loss = model_estimator(
+            model,
+            optimizer = optim.Adam(model.parameters(), lr = lr), 
+            criterion = criterion, 
+            epochs=epochs,
+            trainloader=trainloader, 
+            testloader=testloader,
+            earlystopper= None )#EarlyStopper(patience = 3, min_delta = 0))
+        
+        # # perform out of sample prediction
+        # output = model(features_validation_tensor)
+        # loss = criterion(output, targets_validation_tensor)
+        
+        score_nn += [loss.item()]
+    return np.mean(score_nn)

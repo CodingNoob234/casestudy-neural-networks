@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch.nn.functional as F
 
 def print_nicely(note, length):
     """ 
