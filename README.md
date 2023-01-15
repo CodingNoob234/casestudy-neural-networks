@@ -5,13 +5,13 @@
 In this project, the aim is to model the daily volatility of stocks and crypto assets using neural networks, and compare their performance against the well-performing HAR model from the literature.
 
 ## Methods
-The main.ipynb notebook file is build up in a list of steps:
+The main.ipynb notebook file is build up in a list of steps explained below.
 
 ### Data Preparation
 - The data daily returns are fetched through the Yahoo Finance API, or through importing a csv file.
 - The daily volatility (and weekly/monthly directly resulting from this) are computed
 - This data is used as features and targets for BOTH models! So both have the same output and we can observe if the neural network is able to capture more complex patterns that lead to better predictive power.
-- This data is transformed into training and validation data. The validation data is only used in the end to compare the performance of our final model and the HAR model.
+- This data is split into training and validation data. The validation data is only used in the end to compare the performance of our final neural network and the HAR model.
 
 ### Model Specification
 - The training set is split into several training and validation sets by TimeSeriesKfold to apply cross validation.
