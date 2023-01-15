@@ -59,14 +59,16 @@ def model_estimator(
             if verbose > 0:
                 print("validation loss: {np.average(running_loss)}")
             
-            # if validation results are not improving    
+            # if an early stopper is provided, check if validation loss is still improving
+            # if not, stop the estimation  
             if earlystopper:
                 if earlystopper.early_stop(np.average(running_loss)):
                     print(f"Early stopping due to no decrease in validation loss at epoch: {epoch}")
                     break
-            
+                            
                 
 class EarlyStopper():
+    """ This class checks if the loss function is still improving by certain criteria, specified at initialization """
     def __init__(self, patience = 1, min_delta = 0):
         self.patience = patience
         self.min_delta = min_delta
