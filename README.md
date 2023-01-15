@@ -29,3 +29,4 @@ The main.ipynb notebook file is build up in a list of steps explained below.
 - Generalize more functions.
 - Look if there is a torch model builder so you can pass the number of layers etc. as variables to a function/class that automatically initializes the model and forward function.
 - Some of the data processing can be standardized into functions.
+- Optimizer and Criterion cannot be passed through the generalized functions yet. Although this probably won't vary often

@@ -8,6 +8,8 @@ import torch.nn as nn
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import TimeSeriesSplit, train_test_split
 
+from statsmodels.regression.linear_model import OLS
+
 from utils.functions import reset_model_weights
 from utils.preprocessing import data_to_loaders
 
@@ -116,6 +118,7 @@ def kfolds_fit_and_evaluate_model(
     targets: np.ndarray, 
     lr: float, 
     epochs: int, 
+    earlystopper: EarlyStopper = None,
     normalize_features: bool = False
     ) -> float:
     """ 
@@ -137,7 +140,7 @@ def kfolds_fit_and_evaluate_model(
 
         # split data into feature and target data for neural network
         features_train, features_validation, targets_train, targets_validation = features[train_index], features[test_index], targets[train_index], targets[test_index]
-        loss = single_fit_and_evaluate_model(model, features_train, features_validation, targets_train, targets_validation, lr, epochs, normalize_features)
+        loss = single_fit_and_evaluate_model(model, features_train, features_validation, targets_train, targets_validation, lr, epochs, earlystopper, normalize_features, return_prediction=False)
         
         score_nn += [loss]
     return np.mean(score_nn)
@@ -151,7 +154,9 @@ def single_fit_and_evaluate_model(
     targets_validation: np.ndarray,
     lr: float,
     epochs: int, 
-    normalize_features: bool = False
+    earlystopper: EarlyStopper,
+    normalize_features: bool = False,
+    return_prediction: bool = False,
     ) -> float:
     """ Estimate a given neural network and return the criterion score on the validation data """
     # fit normalizer on train features and normalize both training and validation features
@@ -178,9 +183,27 @@ def single_fit_and_evaluate_model(
         epochs=epochs,
         trainloader=trainloader, 
         testloader=testloader,
-        earlystopper= None )#EarlyStopper(patience = 3, min_delta = 0))
+        earlystopper=earlystopper)
     
-    # # perform out of sample prediction
-    # output = model(features_validation_tensor)
-    # loss = criterion(output, targets_validation_tensor)
-    return loss.item()
+    # perform out of sample prediction
+    if return_prediction:
+        output = model(features_validation_tensor)
+        loss = criterion(output, targets_validation_tensor)
+        return loss.item(), output
+    return loss
+
+
+def fit_and_evaluateHAR(model: OLS, features_train: np.ndarray, features_validation: np.ndarray, targets_train: np.ndarray, targets_validation: np.ndarray, normalize_features: bool = False):
+    """ this functions estimates the HAR model by simple OLS regression of 'todays' volatility on tomorrows'"""
+    if normalize_features:
+        scaler = StandardScaler()
+        features_train = scaler.fit_transform(features_train)
+        features_validation = scaler.transform(features_validation)
+        
+    model.__init__(endog=targets_train, exog=features_train)
+    
+    res = model.fit()
+    output = res.predict(features_validation)
+
+    loss = np.var(targets_validation - output)
+    return loss, output
