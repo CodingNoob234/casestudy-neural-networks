@@ -1,4 +1,5 @@
 import numpy as np
+from copy import deepcopy
 
 import torch.utils
 import torch.optim as optim
@@ -21,7 +22,7 @@ def model_estimator(
     testloader: torch.utils.data.DataLoader = None, 
     earlystopper = None,
     verbose: int = 0
-    ) -> None:
+    ) -> tuple:
     """
     Calling this functions estimates a neural network with a given optimizer, criterion, training/testing data among other variables
     """
@@ -56,6 +57,8 @@ def model_estimator(
         if verbose > 1:        
             print(f"epoch: {epoch}")
             print(f"trainig loss: {avg_running_loss}")
+            
+        # if testloader provided, compute the out of sample performance of the model
         if testloader:
             model_evaluater(model, testloader, criterion)
             if verbose > 0:
@@ -65,11 +68,11 @@ def model_estimator(
             # if not, stop the estimation  
             if earlystopper:
                 if earlystopper.early_stop(np.average(running_loss)):
-                    print(f"Early stopping due to no decrease in validation loss at epoch: {epoch}")
+                    # print(f"Early stopping due to no decrease in validation loss at epoch: {epoch}")
                     break
     
     # at the end of the estimation, return the last loss on the validation data
-    return np.average(running_loss)
+    return np.average(running_loss), epoch
                     
                 
 def model_evaluater(model: nn.Module, dataloader: torch.utils.data.DataLoader, criterion):
@@ -110,6 +113,9 @@ class EarlyStopper():
             if self.counter >= self.patience:
                 return True
         return False
+    
+    def reset(self, ):
+        self.counter = 0
 
 def kfolds_fit_and_evaluate_model(
     model: nn.Module, 
@@ -137,6 +143,8 @@ def kfolds_fit_and_evaluate_model(
 
         # reset weights to start estimating from exactly the same initialization for each fold
         reset_model_weights(model)
+        earlystopper.reset() # the early stopper must also be reset
+
 
         # split data into feature and target data for neural network
         features_train, features_validation, targets_train, targets_validation = features[train_index], features[test_index], targets[train_index], targets[test_index]
@@ -176,7 +184,7 @@ def single_fit_and_evaluate_model(
             
     # initialize and estimate the model
     criterion = nn.MSELoss()
-    loss = model_estimator(
+    loss, epoch = model_estimator(
         model,
         optimizer = optim.Adam(model.parameters(), lr = lr), 
         criterion = criterion, 
