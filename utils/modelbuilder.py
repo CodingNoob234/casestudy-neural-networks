@@ -19,8 +19,11 @@ class ForwardNeuralNetwork(nn.Module):
         init_layers = []
         for i, layer in enumerate(layers[:-1], 1):
             init_layer = nn.Linear(layers[i-1], layers[i])
+            
+            # equal to: self.fc{i} = nn.Linear(layers[i-1], layer[i])
             self.__setattr__(f"fc{i}", init_layer)
             init_layers.append(init_layer)
+            
         self.__setattr__(f"fc{i}", nn.Linear(layers[i-1], layers[i])   )
         
         # store the layers as a list as well

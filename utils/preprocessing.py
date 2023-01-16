@@ -13,6 +13,7 @@ def data_to_loaders(features_train_tensor: torch.Tensor, features_test_tensor: t
     trainloader = torch.utils.data.DataLoader( 
         [(feature, target) for feature, target in zip(features_train_tensor, targets_train_tensor)], 
         batch_size = 20)
+    
     testloader = torch.utils.data.DataLoader(
         [(feature, target) for feature, target in zip(features_test_tensor, targets_test_tensor)]
     )

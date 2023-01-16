@@ -17,7 +17,8 @@ from utils.preprocessing import data_to_loaders
 def model_estimator(
     model: nn.Module, 
     optimizer: optim.Optimizer, 
-    criterion, epochs: int, 
+    criterion, 
+    epochs: int, 
     trainloader: torch.utils.data.DataLoader, 
     testloader: torch.utils.data.DataLoader = None, 
     earlystopper = None,
@@ -51,6 +52,11 @@ def model_estimator(
             # keep track of loss to log improvements of the fit
             running_loss += [loss.item()]
             
+            ###### REMOVE THIS ########
+            # for layer in model.children():
+                # print(layer.parameters())
+            ###########################
+
         avg_running_loss = np.average(running_loss)
 
         # if verbose, print intermediate model performances in and out of sample
@@ -60,7 +66,7 @@ def model_estimator(
             
         # if testloader provided, compute the out of sample performance of the model
         if testloader:
-            model_evaluater(model, testloader, criterion)
+            running_loss = model_evaluater(model, testloader, criterion)
             if verbose > 0:
                 print("validation loss: {np.average(running_loss)}")
             
@@ -145,14 +151,12 @@ def kfolds_fit_and_evaluate_model(
         reset_model_weights(model)
         if earlystopper: earlystopper.reset() # the early stopper must also be reset
 
-
         # split data into feature and target data for neural network
         features_train, features_validation, targets_train, targets_validation = features[train_index], features[test_index], targets[train_index], targets[test_index]
         loss = single_fit_and_evaluate_model(model, features_train, features_validation, targets_train, targets_validation, lr, epochs, earlystopper, normalize_features, return_prediction=False)
         
         score_nn += [loss]
     return np.mean(score_nn)
-
 
 def single_fit_and_evaluate_model(
     model: nn.Module, 
