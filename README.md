@@ -28,3 +28,10 @@ The main.ipynb notebook file is build up in a list of steps explained below.
 - A big problem that seems to arise is the inconsistency of the trained neural network. The occurence of this problem is well known and the torch documentation provides some explanation how to tackle this partially. Settings the random seed in the initialization function of the model leads to exactly the same initial weights each time. Is this desired?
 - Some of the data processing can be standardized into functions maybe.
 - Optimizer and Criterion cannot be passed through generalized functions yet. Although this probably won't vary often
+
+### Q&A's
+- How can we extract the 5-minute high frequency data from the WRDS database.
+- Currently we are using the same amount of features for both models. Can we include lagged versions of the features for the neural networks. If so, how do we determine the amount of lags?
+- How can we find the optimal seed (parameter initialization) to train the neural network? Should the seed be included when cross validating?
+- Is there a way to find the best combination of hidden layers and nodes, apart from a GridSearch?
+- 
