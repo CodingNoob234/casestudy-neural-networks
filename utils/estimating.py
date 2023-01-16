@@ -143,7 +143,7 @@ def kfolds_fit_and_evaluate_model(
 
         # reset weights to start estimating from exactly the same initialization for each fold
         reset_model_weights(model)
-        earlystopper.reset() # the early stopper must also be reset
+        if earlystopper: earlystopper.reset() # the early stopper must also be reset
 
 
         # split data into feature and target data for neural network
