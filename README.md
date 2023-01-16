@@ -25,8 +25,6 @@ The main.ipynb notebook file is build up in a list of steps explained below.
 - Both models predict the testing data and are compared by MSE.
 
 ## Code Improvements
-- A big problem that seems to arise is the inconsistency of the trained neural network. The occurence of this problem is well known and the torch documentation provides some explanation how to tackle this partially.
-- Generalize more functions.
-- Look if there is a torch model builder so you can pass the number of layers etc. as variables to a function/class that automatically initializes the model and forward function.
-- Some of the data processing can be standardized into functions.
-- Optimizer and Criterion cannot be passed through the generalized functions yet. Although this probably won't vary often
+- A big problem that seems to arise is the inconsistency of the trained neural network. The occurence of this problem is well known and the torch documentation provides some explanation how to tackle this partially. Settings the random seed in the initialization function of the model leads to exactly the same initial weights each time. Is this desired?
+- Some of the data processing can be standardized into functions maybe.
+- Optimizer and Criterion cannot be passed through generalized functions yet. Although this probably won't vary often
