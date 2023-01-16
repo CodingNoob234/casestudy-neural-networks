@@ -34,4 +34,4 @@ The main.ipynb notebook file is build up in a list of steps explained below.
 - Currently we are using the same amount of features for both models. Can we include lagged versions of the features for the neural networks. If so, how do we determine the amount of lags?
 - How can we find the optimal seed (parameter initialization) to train the neural network? Should the seed be included when cross validating?
 - Is there a way to find the best combination of hidden layers and nodes, apart from a GridSearch?
-- 
+- Are we supposed to perform the goodness-of-fit for the models (MSE, likelihood, R^2)?
