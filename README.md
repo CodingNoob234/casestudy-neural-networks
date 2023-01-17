@@ -29,6 +29,7 @@ The main.ipynb notebook file is build up in a list of steps explained below.
 - Some of the data processing can be standardized into functions maybe.
 - Optimizer and Criterion cannot be passed through generalized functions yet. Although this probably won't vary often
 - Use nn.Sequential() in modelbuilder, with nn.Sequential().append() to add variable number of layers
+- In preprocessing.py, add Dataset class to easily load features and targets into dataloaders
 
 ## Q&A's
 - How can we extract the 5-minute high frequency data from the WRDS database.
