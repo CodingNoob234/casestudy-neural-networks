@@ -9,14 +9,44 @@ class PreProcessor():
     def __init__(self, ):
         pass
     
-def pre_process_data_har(stock: str = "KO"):
+def pre_process_all_data(stock: str = "KO", train_size = .8):
     data = get_ticker_daily_close(stock)
-    d = DataSet()
-    return d
+    
+    data_nn_train, data_nn_val = pre_process_data_har(data, train_size=train_size)
+    data_har_train, data_har_val = pre_process_data_nn(data, train_size=train_size)
+    return data_nn_train, data_har_val, data_har_train, data_har_val
+    
+def pre_process_data_har(data, train_size = .8):
+    """ Computes the features (prev daily/weekly/monthly volatility) and targets (daily/weekly volatility) and returns them as train/validate datasets""" 
+    # process features and targets
+    targets = 
+    features = 
+    
+    # to DataSet
+    return split_and_to_dataset(features, targets, train_size=train_size)
+    
 
-def pre_process_data_nn(stock: str = "KO"):
-    d = DataSet()
-    return d
+def pre_process_data_nn(data, train_size = .8):
+    # process features and targets
+    targets = 
+    features = 
+    
+    # to DataSet
+    return split_and_to_dataset(features, targets, train_size=train_size)
+
+def split_and_to_dataset(features, targets, train_size = .8, torch = False):
+    """ splits features and targets into training and testing sets, and loads them into DataSet class instances"""
+    # split with sklearn
+    features_train, features_val, targets_train, targets_val = train_test_split(features, targets, train_size = train_size)
+    
+    # to DataSet instances
+    if torch:
+        data_train = DataSet(features_train, targets_train)
+        data_val = DataSet(features_val, targets_val)
+    else:
+        data_train = DataSetNump(features_train, targets_train)
+        data_val = DataSetNump(features_val, targets_val)
+    return data_train, data_val
 
 class DataSetNump(Dataset):
     """ Load the x,y data in a Dataset instance as numpy arrays """
