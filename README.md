@@ -37,3 +37,10 @@ The main.ipynb notebook file is build up in a list of steps explained below.
 - How can we find the optimal seed (parameter initialization) to train the neural network? Should the seed be included when cross validating?
 - Is there a way to find the best combination of hidden layers and nodes, apart from a GridSearch?
 - Are we supposed to perform the goodness-of-fit for the models (MSE, likelihood, R^2)?
+
+## Feedback Enzo
+- Diebold-Moriano for comparing accuracy
+- Trade off complexity/...
+- 2 Nodes (only option between input output)
+- Activation function is IMPORTANT! Especially for insample estimation and analysis 
+- Seed fixed first, then random (want stochatisticity in the model)
