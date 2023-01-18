@@ -13,20 +13,24 @@ from sklearn.model_selection import TimeSeriesSplit, train_test_split
 from statsmodels.regression.linear_model import OLS
 
 from utils.functions import reset_model_weights
-from utils.preprocessing import data_to_loaders, DataSet
+from utils.preprocessing import DataSet
 
 def model_estimator(
     model: nn.Module, 
     optimizer: optim.Optimizer, 
     criterion, 
     epochs: int, 
-    trainloader: torch.utils.data.DataLoader, 
-    testloader: torch.utils.data.DataLoader = None, 
+    trainloader: DataLoader, 
+    testloader: DataLoader = None, 
     earlystopper = None,
     verbose: int = 0
-    ) -> tuple:
+    ):
     """
-    Calling this functions estimates a neural network with a given optimizer, criterion, training/testing data among other variables
+    This functions trains a neural network on training data, through gradient descent.
+    I.e. for a number of epochs, go through all batches in the trainloader.
+    For each batch a prediction is made, which is used to compute the gradient of the loss function for each parameter in the model.
+    After each batch, the parameters are update through this gradient, multiplied by some loss function. 
+    Some advanced methods like Adam can also be used, which still use the above explained steps as a basis.
     """
     
     for epoch in range(1, epochs+1):
@@ -40,10 +44,10 @@ def model_estimator(
             # reset gradient optimizer
             optimizer.zero_grad()
             
-            # predict the batch targets
+            # with the batch features, predict the batch targets
             output = model(batch_features)
             
-            # compute the loss and .backward() computes the gradient respective to the loss function
+            # compute the loss and .backward() computes the gradient of the loss function
             loss = criterion(output, batch_targets)
             loss.backward()
             
@@ -52,43 +56,40 @@ def model_estimator(
             
             # keep track of loss to log improvements of the fit
             running_loss += [loss.item()]
-            
-            ###### REMOVE THIS ########
-            # for layer in model.children():
-                # print(layer.parameters())
-            ###########################
 
-        avg_running_loss = np.average(running_loss)
+        # the in-sampe loss after each epoch
+        train_running_loss = np.average(running_loss)
 
-        # if verbose, print intermediate model performances in and out of sample
-        if verbose > 1:        
-            print(f"epoch: {epoch}")
-            print(f"trainig loss: {avg_running_loss}")
-            
-        # if testloader provided, compute the out of sample performance of the model
+        # if testloader provided, compute the out-of-sample performance of the model
         if testloader:
-            running_loss = model_evaluater(model, testloader, criterion)
+            test_running_loss = model_evaluater(model, testloader, criterion)
             if verbose > 0:
                 print("validation loss: {np.average(running_loss)}")
             
             # if an early stopper is provided, check if validation loss is still improving
-            # if not, stop the estimation  
+            # if not, stop the estimation
             if earlystopper:
-                if earlystopper.early_stop(np.average(running_loss)):
-                    # print(f"Early stopping due to no decrease in validation loss at epoch: {epoch}")
+                if earlystopper.early_stop(test_running_loss):
                     break
     
     # at the end of the estimation, return the last loss on the validation data
-    return np.average(running_loss), epoch
+    if testloader:
+        return test_running_loss, epoch
+    return train_running_loss
                     
                 
-def model_evaluater(model: nn.Module, dataloader: torch.utils.data.DataLoader, criterion):
-    """ given a model and dataloader, a prediction is made and average loss per batch (based on provided criterion function) is returned """
+def model_evaluater(model: nn.Module, data, criterion):
+    """ given a model and dataloader or dataset, a prediction is made and average loss per batch (based on provided criterion function) is returned """    
     running_loss = []
     
+    # if a dataset is provided, we don't have to iterate through all batches
+    if isinstance(data, DataSet):
+        output = model(data.x_t)
+        return criterion(output, data.y_t)
+        
     # for all batches
-    for data in dataloader:
-        batch_features, batch_targets = data
+    for batch in data:
+        batch_features, batch_targets = batch
         
         # predict
         output = model(batch_features.float())
@@ -98,9 +99,9 @@ def model_evaluater(model: nn.Module, dataloader: torch.utils.data.DataLoader, c
         
         # store loss
         running_loss += [loss.item()]
-
+        
+    # return the average loss
     return np.average(running_loss)
-                            
                 
 class EarlyStopper():
     """ This class checks if the loss function is still improving by certain criteria, specified at initialization """
@@ -133,7 +134,7 @@ def kfolds_fit_and_evaluate_model(
     epochs: int, 
     earlystopper: EarlyStopper = None,
     normalize_features: bool = False
-    ) -> float:
+    ):
     """ 
     This functions executes as number of steps:
     - initialise the model based on provided parameters
@@ -155,10 +156,13 @@ def kfolds_fit_and_evaluate_model(
         # split data into feature and target data for neural network
         features_train, features_test, targets_train, targets_test = features[train_index], features[test_index], targets[train_index], targets[test_index]
         data_train, data_test = DataSet(features_train, targets_train), DataSet(features_test, targets_test)
-        loss = single_fit_and_evaluate_model(model, data_train, data_test, lr, epochs, earlystopper, normalize_features, return_prediction=False)
         
-        score_nn += [loss]
-    return np.mean(score_nn)
+        # estimate the data
+        loss = single_fit_and_evaluate_model(model, data_train, data_test, lr, epochs, earlystopper, normalize_features, return_prediction=False)
+        score_nn.append(loss)
+    
+    average_kfold_score = np.average(score_nn)
+    return average_kfold_score
 
 def single_fit_and_evaluate_model(
     model: nn.Module, 
@@ -177,7 +181,7 @@ def single_fit_and_evaluate_model(
         features_train = scaler.fit_transform(features_train)
         features_validation = scaler.transform(features_validation)
         
-    loader_train = DataLoader(data_train)
+    loader_train = DataLoader(data_train, batch_size = 20)
     loader_test = DataLoader(data_test)
             
     # initialize and estimate the model
