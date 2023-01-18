@@ -24,9 +24,10 @@ The main.ipynb notebook file is build up in a list of steps explained below.
 - The HAR model is estimated on exactly the same training data.
 - Both models predict the testing data and are compared by MSE.
 
+========================================================================================================================
 ## Code Improvements
 - Add in sample fitting, and plot the activation function per node with a range of parameter values as input. Through this, we can observe what 'activate' the node.
-- Dataprocessing must generalized into a function
+- Dataprocessing must generalized into a function. This way we can switch more easily between lags/no lags, daily/weekly/monthly targets etc.
 - Add method to handle with seed inconsistencies!
 - Add Diebold-Moriano test, should be easy
 - (no priority) pass optimizer and criterion as parameters in the estimation funciton
