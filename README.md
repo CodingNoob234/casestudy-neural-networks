@@ -25,11 +25,11 @@ The main.ipynb notebook file is build up in a list of steps explained below.
 - Both models predict the testing data and are compared by MSE.
 
 ## Code Improvements
-- A big problem that seems to arise is the inconsistency of the trained neural network. The occurence of this problem is well known and the torch documentation provides some explanation how to tackle this partially. Settings the random seed in the initialization function of the model leads to exactly the same initial weights each time. Is this desired?
-- Some of the data processing can be standardized into functions maybe.
-- Optimizer and Criterion cannot be passed through generalized functions yet. Although this probably won't vary often
-- Use nn.Sequential() in modelbuilder, with nn.Sequential().append() to add variable number of layers
-- In preprocessing.py, add Dataset class to easily load features and targets into dataloaders
+- Add in sample fitting, and plot the activation function per node with a range of parameter values as input. Through this, we can observe what 'activate' the node.
+- Dataprocessing must generalized into a function
+- Add method to handle with seed inconsistencies!
+- Add Diebold-Moriano test, should be easy
+- (no priority) pass optimizer and criterion as parameters in the estimation funciton
 
 ## Q&A's
 - How can we extract the 5-minute high frequency data from the WRDS database.
@@ -39,8 +39,9 @@ The main.ipynb notebook file is build up in a list of steps explained below.
 - Are we supposed to perform the goodness-of-fit for the models (MSE, likelihood, R^2)?
 
 ## Feedback Enzo
-- Diebold-Moriano for comparing accuracy
-- Trade off complexity/...
-- 2 Nodes (only option between input output)
-- Activation function is IMPORTANT! Especially for insample estimation and analysis 
+- Diebold-Moriano for comparing accuracy -> to be added
+- Trade off complexity capturing highly non-linear relations, versus simplicity, estimation consistency and faster.
+- 2 Nodes (only option between input output) -> this is fixed
+- Activation function is IMPORTANT! Especially for insample estimation and analysis --> changed to sigmoid function
 - Seed fixed first, then random (want stochatisticity in the model)
+- More input (like lagged values) is something that can be added as extra in the report, no prio
