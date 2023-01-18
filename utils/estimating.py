@@ -5,6 +5,7 @@ import torch.utils
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.nn as nn
+from torch.utils.data import DataLoader
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import TimeSeriesSplit, train_test_split
@@ -12,7 +13,7 @@ from sklearn.model_selection import TimeSeriesSplit, train_test_split
 from statsmodels.regression.linear_model import OLS
 
 from utils.functions import reset_model_weights
-from utils.preprocessing import data_to_loaders
+from utils.preprocessing import data_to_loaders, DataSet
 
 def model_estimator(
     model: nn.Module, 
@@ -152,18 +153,17 @@ def kfolds_fit_and_evaluate_model(
         if earlystopper: earlystopper.reset() # the early stopper must also be reset
 
         # split data into feature and target data for neural network
-        features_train, features_validation, targets_train, targets_validation = features[train_index], features[test_index], targets[train_index], targets[test_index]
-        loss = single_fit_and_evaluate_model(model, features_train, features_validation, targets_train, targets_validation, lr, epochs, earlystopper, normalize_features, return_prediction=False)
+        features_train, features_test, targets_train, targets_test = features[train_index], features[test_index], targets[train_index], targets[test_index]
+        data_train, data_test = DataSet(features_train, targets_train), DataSet(features_test, targets_test)
+        loss = single_fit_and_evaluate_model(model, data_train, data_test, lr, epochs, earlystopper, normalize_features, return_prediction=False)
         
         score_nn += [loss]
     return np.mean(score_nn)
 
 def single_fit_and_evaluate_model(
     model: nn.Module, 
-    features_train: np.ndarray, 
-    features_validation: np.ndarray, 
-    targets_train: np.ndarray, 
-    targets_validation: np.ndarray,
+    data_train: DataSet,
+    data_test: DataSet,
     lr: float,
     epochs: int, 
     earlystopper: EarlyStopper,
@@ -176,15 +176,9 @@ def single_fit_and_evaluate_model(
         scaler = StandardScaler()
         features_train = scaler.fit_transform(features_train)
         features_validation = scaler.transform(features_validation)
-
-    # all features and targets to float tensor
-    features_train_tensor = torch.tensor(features_train, dtype=torch.float32)
-    features_validation_tensor = torch.tensor(features_validation, dtype=torch.float32)
-    targets_train_tensor = torch.tensor(targets_train, dtype=torch.float32)
-    targets_validation_tensor = torch.tensor(targets_validation, dtype=torch.float32)
-    
-    # feature/target tensors to dataloaders
-    trainloader, testloader = data_to_loaders(features_train_tensor, features_validation_tensor, targets_train_tensor, targets_validation_tensor)
+        
+    loader_train = DataLoader(data_train)
+    loader_test = DataLoader(data_test)
             
     # initialize and estimate the model
     criterion = nn.MSELoss()
@@ -193,14 +187,14 @@ def single_fit_and_evaluate_model(
         optimizer = optim.Adam(model.parameters(), lr = lr), 
         criterion = criterion, 
         epochs=epochs,
-        trainloader=trainloader, 
-        testloader=testloader,
+        trainloader=loader_train, 
+        testloader=loader_test,
         earlystopper=earlystopper)
     
     # perform out of sample prediction
     if return_prediction:
-        output = model(features_validation_tensor)
-        loss = criterion(output, targets_validation_tensor)
+        output = model(data_test.x_t)
+        loss = criterion(output, data_test.y_t)
         return loss.item(), output
     return loss
 
