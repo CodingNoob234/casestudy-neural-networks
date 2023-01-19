@@ -171,6 +171,7 @@ def single_fit_and_evaluate_model(
     earlystopper: EarlyStopper,
     normalize_features: bool = False,
     return_prediction: bool = False,
+    batch_size: int = 20,
     ) -> float:
     """ Estimate a given neural network and return the criterion score on the validation data """
     # fit normalizer on train features and normalize both training and validation features
@@ -180,7 +181,7 @@ def single_fit_and_evaluate_model(
         features_validation = scaler.transform(features_validation)
         
     loader_train = DataLoader(data_train, batch_size = 20)
-    loader_test = DataLoader(data_test)
+    loader_test = DataLoader(data_test, batch_size = 20)
             
     # initialize and estimate the model
     criterion = nn.MSELoss()
@@ -201,7 +202,12 @@ def single_fit_and_evaluate_model(
     return loss
 
 
-def fit_and_evaluateHAR(model: OLS, data_train: DataSetNump, data_test: DataSetNump, normalize_features: bool = False):
+def fit_and_evaluateHAR(
+    model: OLS, 
+    data_train: DataSetNump, 
+    data_test: DataSetNump, 
+    normalize_features: bool = False,
+    ):
     """ this functions estimates the HAR model by simple OLS regression of 'todays' volatility on tomorrows'"""
     if normalize_features:
         scaler = StandardScaler()
