@@ -3,6 +3,8 @@ import torch
 
 from torch.utils.data import Dataset
 
+from sklearn.model_selection import train_test_split
+
 from utils.functions import get_ticker_daily_close
 
 class PreProcessor():
@@ -23,7 +25,7 @@ def pre_process_data_har(data, train_size = .8):
     features = 
     
     # to DataSet
-    return split_and_to_dataset(features, targets, train_size=train_size)
+    return split_and_to_dataset(features, targets, train_size=train_size, to_torch = False)
     
 
 def pre_process_data_nn(data, train_size = .8):
@@ -32,9 +34,9 @@ def pre_process_data_nn(data, train_size = .8):
     features = 
     
     # to DataSet
-    return split_and_to_dataset(features, targets, train_size=train_size)
+    return split_and_to_dataset(features, targets, train_size=train_size, to_torch = True)
 
-def split_and_to_dataset(features, targets, train_size = .8, torch = False):
+def split_and_to_dataset(features, targets, train_size = .8, to_torch = False):
     """ splits features and targets into training and testing sets, and loads them into DataSet class instances"""
     # split with sklearn
     features_train, features_val, targets_train, targets_val = train_test_split(features, targets, train_size = train_size)
@@ -60,6 +62,11 @@ class DataSetNump(Dataset):
     def __getitem__(self, idx):
         return self.x[idx], self.y[idx]
     
+    def split(self, train_index: list, test_index: list):
+        data_train = DataSetNump(self.x[train_index], self.y[train_index])
+        data_test = DataSetNump(self.x[test_index], self.y[test_index])
+        return data_train, data_test
+    
 class DataSet(Dataset):
     """ Loads the x,y data into a Dataset instance as torch tensors """
     def __init__(self, x: np.ndarray, y: np.ndarray):
@@ -69,5 +76,10 @@ class DataSet(Dataset):
     def __len__(self, ):
         return len(self.y_t)
     
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int):
         return self.x_t[idx], self.y_t[idx]
+    
+    def split(self, train_index: list, test_index: list):
+        data_train = DataSet(self.x_t[train_index], self.y_t[train_index])
+        data_test = DataSet(self.x_t[test_index], self.y_t[test_index])
+        return data_train, data_test
