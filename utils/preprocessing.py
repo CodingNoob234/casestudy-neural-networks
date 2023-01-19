@@ -12,26 +12,42 @@ class PreProcessor():
         pass
     
 def pre_process_all_data(stock: str = "KO", train_size = .8):
+    """ This functions computes for the HAR and NN the features and targets, splits them"""
     data = get_ticker_daily_close(stock)
     
-    data_nn_train, data_nn_val = pre_process_data_har(data, train_size=train_size)
-    data_har_train, data_har_val = pre_process_data_nn(data, train_size=train_size)
-    return data_nn_train, data_har_val, data_har_train, data_har_val
+    def compute_targets(data):
+        return data.apply(np.log).diff().apply(lambda x: x**2)
     
-def pre_process_data_har(data, train_size = .8):
+    def compute_features_har(data):
+        targets = compute_targets(data)
+        features = np.zeros(len(data), 3)
+        features[:,0] = targets.shift(1)
+        features[:,1] = targets.rolling(5).mean().shift(1)
+        features[:,2] = targets.rolling(21).mean().shift(1)
+        return features
+    
+    # for both HAR and NN, compute the features/targets, split and return into dataset instances
+    data_nn_train, data_nn_val = pre_process_data_har(data, features_func = compute_features_har, target_func = compute_targets, train_size=train_size)
+    data_har_train, data_har_val = pre_process_data_nn(data, features_func = compute_features_har, target_func = compute_targets, train_size=train_size)
+    
+    return data_nn_train, data_nn_val, data_har_train, data_har_val
+    
+def pre_process_data_har(data, feature_func, target_func, train_size = .8):
     """ Computes the features (prev daily/weekly/monthly volatility) and targets (daily/weekly volatility) and returns them as train/validate datasets""" 
     # process features and targets
-    targets = 
-    features = 
+    targets = target_func(data)
+    features = feature_func(data)
+    features, targets = features[22:], targets[22:]
     
     # to DataSet
     return split_and_to_dataset(features, targets, train_size=train_size, to_torch = False)
     
 
-def pre_process_data_nn(data, train_size = .8):
+def pre_process_data_nn(data, feature_func, target_func, train_size = .8):
     # process features and targets
-    targets = 
-    features = 
+    targets = target_func(data)
+    features = feature_func(data)
+    features, targets = features[22:], targets[22:]
     
     # to DataSet
     return split_and_to_dataset(features, targets, train_size=train_size, to_torch = True)
@@ -42,7 +58,7 @@ def split_and_to_dataset(features, targets, train_size = .8, to_torch = False):
     features_train, features_val, targets_train, targets_val = train_test_split(features, targets, train_size = train_size)
     
     # to DataSet instances
-    if torch:
+    if to_torch:
         data_train = DataSet(features_train, targets_train)
         data_val = DataSet(features_val, targets_val)
     else:
