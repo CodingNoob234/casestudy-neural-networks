@@ -5,6 +5,8 @@ from torch.utils.data import Dataset
 
 from sklearn.model_selection import train_test_split
 
+import statsmodels.api as sm
+
 from utils.functions import get_ticker_daily_close
 
 class PreProcessor():
@@ -20,32 +22,42 @@ def pre_process_all_data(stock: str = "KO", train_size = .8):
     
     def compute_features_har(data):
         targets = compute_targets(data)
-        features = np.zeros(len(data), 3)
+        features = np.zeros(shape=(len(data), 3))
+        features[:,0] = targets.shift(1)
+        features[:,1] = targets.rolling(5).mean().shift(1)
+        features[:,2] = targets.rolling(21).mean().shift(1)
+        
+        # add constant for har features and drop nan values
+        features = sm.add_constant(features)
+        return features
+    
+    def compute_features_nn(data):
+        targets = compute_targets(data)
+        features = np.zeros(shape=(len(data), 3))
         features[:,0] = targets.shift(1)
         features[:,1] = targets.rolling(5).mean().shift(1)
         features[:,2] = targets.rolling(21).mean().shift(1)
         return features
     
     # for both HAR and NN, compute the features/targets, split and return into dataset instances
-    data_nn_train, data_nn_val = pre_process_data_har(data, features_func = compute_features_har, target_func = compute_targets, train_size=train_size)
-    data_har_train, data_har_val = pre_process_data_nn(data, features_func = compute_features_har, target_func = compute_targets, train_size=train_size)
+    data_nn_train, data_nn_val = pre_process_data_nn(data.copy(), feature_func = compute_features_nn, target_func = compute_targets, train_size=train_size)
+    data_har_train, data_har_val = pre_process_data_har(data.copy(), feature_func = compute_features_har, target_func = compute_targets, train_size=train_size)
     
     return data_nn_train, data_nn_val, data_har_train, data_har_val
     
 def pre_process_data_har(data, feature_func, target_func, train_size = .8):
     """ Computes the features (prev daily/weekly/monthly volatility) and targets (daily/weekly volatility) and returns them as train/validate datasets""" 
     # process features and targets
-    targets = target_func(data)
+    targets = target_func(data).values.reshape(-1,1)
     features = feature_func(data)
     features, targets = features[22:], targets[22:]
     
     # to DataSet
     return split_and_to_dataset(features, targets, train_size=train_size, to_torch = False)
     
-
 def pre_process_data_nn(data, feature_func, target_func, train_size = .8):
     # process features and targets
-    targets = target_func(data)
+    targets = target_func(data).values.reshape(-1,1)
     features = feature_func(data)
     features, targets = features[22:], targets[22:]
     
@@ -55,7 +67,7 @@ def pre_process_data_nn(data, feature_func, target_func, train_size = .8):
 def split_and_to_dataset(features, targets, train_size = .8, to_torch = False):
     """ splits features and targets into training and testing sets, and loads them into DataSet class instances"""
     # split with sklearn
-    features_train, features_val, targets_train, targets_val = train_test_split(features, targets, train_size = train_size)
+    features_train, features_val, targets_train, targets_val = train_test_split(features, targets, train_size = train_size, shuffle=False)
     
     # to DataSet instances
     if to_torch:

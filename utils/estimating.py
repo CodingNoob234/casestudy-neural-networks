@@ -13,7 +13,7 @@ from sklearn.model_selection import TimeSeriesSplit, train_test_split
 from statsmodels.regression.linear_model import OLS
 
 from utils.functions import reset_model_weights
-from utils.preprocessing import DataSet
+from utils.preprocessing import DataSet, DataSetNump
 
 def model_estimator(
     model: nn.Module, 
@@ -128,8 +128,7 @@ class EarlyStopper():
 def kfolds_fit_and_evaluate_model(
     model: nn.Module, 
     kfold: TimeSeriesSplit, 
-    features: np.ndarray, 
-    targets: np.ndarray, 
+    data: DataSet,
     lr: float, 
     epochs: int, 
     earlystopper: EarlyStopper = None,
@@ -147,15 +146,14 @@ def kfolds_fit_and_evaluate_model(
     score_nn = []
 
     i = 0
-    for train_index, test_index in kfold.split(features):
+    for train_index, test_index in kfold.split(data.x_t):
 
         # reset weights to start estimating from exactly the same initialization for each fold
         reset_model_weights(model)
         if earlystopper: earlystopper.reset() # the early stopper must also be reset
 
         # split data into feature and target data for neural network
-        features_train, features_test, targets_train, targets_test = features[train_index], features[test_index], targets[train_index], targets[test_index]
-        data_train, data_test = DataSet(features_train, targets_train), DataSet(features_test, targets_test)
+        data_train, data_test = data.split(train_index, test_index)
         
         # estimate the data
         loss = single_fit_and_evaluate_model(model, data_train, data_test, lr, epochs, earlystopper, normalize_features, return_prediction=False)
@@ -203,17 +201,17 @@ def single_fit_and_evaluate_model(
     return loss
 
 
-def fit_and_evaluateHAR(model: OLS, features_train: np.ndarray, features_validation: np.ndarray, targets_train: np.ndarray, targets_validation: np.ndarray, normalize_features: bool = False):
+def fit_and_evaluateHAR(model: OLS, data_train: DataSetNump, data_test: DataSetNump, normalize_features: bool = False):
     """ this functions estimates the HAR model by simple OLS regression of 'todays' volatility on tomorrows'"""
     if normalize_features:
         scaler = StandardScaler()
-        features_train = scaler.fit_transform(features_train)
-        features_validation = scaler.transform(features_validation)
+        data_train.x = scaler.fit_transform(data_train.x)
+        data_test.x = scaler.transform(data_test.x)
         
-    model.__init__(endog=targets_train, exog=features_train)
+    model.__init__(endog=data_train.y, exog=data_train.x)
     
     res = model.fit()
-    output = res.predict(features_validation)
+    output = res.predict(data_test.x)
 
-    loss = np.var(targets_validation - output)
+    loss = np.var(data_test.y - output)
     return loss, output
