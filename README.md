@@ -24,9 +24,22 @@ The main.ipynb notebook file is build up in a list of steps explained below.
 - The HAR model is estimated on exactly the same training data.
 - Both models predict the testing data and are compared by MSE.
 
+========================================================================================================================
 ## Code Improvements
-- A big problem that seems to arise is the inconsistency of the trained neural network. The occurence of this problem is well known and the torch documentation provides some explanation how to tackle this partially.
-- Generalize more functions.
-- Look if there is a torch model builder so you can pass the number of layers etc. as variables to a function/class that automatically initializes the model and forward function.
-- Some of the data processing can be standardized into functions.
-- Optimizer and Criterion cannot be passed through the generalized functions yet. Although this probably won't vary often
+- Add in sample fitting, and plot the activation function per node with a range of parameter values as input. Through this, we can observe what 'activate' the node.
+- (no priority) pass optimizer and criterion as parameters in the estimation funciton
+
+## Q&A's
+- How can we extract the 5-minute high frequency data from the WRDS database.
+- Currently we are using the same amount of features for both models. Can we include lagged versions of the features for the neural networks. If so, how do we determine the amount of lags?
+- How can we find the optimal seed (parameter initialization) to train the neural network? Should the seed be included when cross validating?
+- Is there a way to find the best combination of hidden layers and nodes, apart from a GridSearch?
+- Are we supposed to perform the goodness-of-fit for the models (MSE, likelihood, R^2)?
+
+## Feedback Enzo
+- Diebold-Moriano for comparing accuracy -> to be added
+- Trade off complexity capturing highly non-linear relations, versus simplicity, estimation consistency and faster.
+- 2 Nodes (only option between input output) -> this is fixed
+- Activation function is IMPORTANT! Especially for insample estimation and analysis --> changed to sigmoid function
+- Seed fixed first, then random (want stochatisticity in the model)
+- More input (like lagged values) is something that can be added as extra in the report, no prio
