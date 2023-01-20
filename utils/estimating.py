@@ -14,6 +14,7 @@ from statsmodels.regression.linear_model import OLS
 
 from utils.functions import reset_model_weights
 from utils.preprocessing import DataSet, DataSetNump
+from utils.modelbuilder import ForwardNeuralNetwork
 
 def model_estimator(
     model: nn.Module, 
@@ -126,7 +127,9 @@ class EarlyStopper():
         self.counter = 0
 
 def kfolds_fit_and_evaluate_model(
-    model: nn.Module, 
+    input_size: int,
+    output_size: int,
+    hidden_layers: list, 
     kfold: TimeSeriesSplit, 
     data: DataSet,
     lr: float, 
@@ -149,7 +152,8 @@ def kfolds_fit_and_evaluate_model(
     for train_index, test_index in kfold.split(data.x_t):
 
         # reset weights to start estimating from exactly the same initialization for each fold
-        reset_model_weights(model)
+        # reset_model_weights(model)
+        model = ForwardNeuralNetwork(input_size, output_size, hidden_layers)
         if earlystopper: earlystopper.reset() # the early stopper must also be reset
 
         # split data into feature and target data for neural network

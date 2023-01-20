@@ -9,7 +9,7 @@ class ForwardNeuralNetwork(nn.Module):
         output_size: int, 
         hidden_layers: list = [], 
         activation_function = nn.Sigmoid,
-        seed: int = 3407,
+        seed: int = None,
         ):
         # if we want to replicate the initialization
         if seed:
