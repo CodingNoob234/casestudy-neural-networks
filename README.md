@@ -27,8 +27,6 @@ The main.ipynb notebook file is build up in a list of steps explained below.
 ========================================================================================================================
 ## Code Improvements
 - Add in sample fitting, and plot the activation function per node with a range of parameter values as input. Through this, we can observe what 'activate' the node.
-- Add method to handle with seed inconsistencies!
-- Add Diebold-Moriano test, should be easy
 - (no priority) pass optimizer and criterion as parameters in the estimation funciton
 
 ## Q&A's
