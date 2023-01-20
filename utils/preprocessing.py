@@ -8,10 +8,6 @@ from sklearn.model_selection import train_test_split
 import statsmodels.api as sm
 
 from utils.functions import get_ticker_daily_close
-
-class PreProcessor():
-    def __init__(self, ):
-        pass
     
 def pre_process_all_data(stock: str = "KO", train_size = .8):
     """ This functions computes for the HAR and NN the features and targets, splits them"""
