@@ -6,17 +6,16 @@ from torch.utils.data import Dataset
 from sklearn.model_selection import train_test_split
 
 import statsmodels.api as sm
-
-from utils.functions import get_ticker_daily_close
     
-def pre_process_all_data(stock: str = "KO", train_size = .8):
+def pre_process_all_data(data, train_size = .8):
     """ This functions computes for the HAR and NN the features and targets, splits them"""
-    data = get_ticker_daily_close(stock)
     
     def compute_targets(data):
-        return data.apply(np.log).diff().apply(lambda x: x**2)
+        """ this just returns the unchanged data, i.e. daily realized volatility """
+        return data
     
     def compute_features_har(data):
+        """ Compute previous daily, weekly and monthly realized volatility """
         targets = compute_targets(data)
         features = np.zeros(shape=(len(data), 3))
         features[:,0] = targets.shift(1)

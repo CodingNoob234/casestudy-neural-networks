@@ -28,7 +28,7 @@ class ForwardNeuralNetwork(nn.Module):
         # the last layer is our output layer, which should not have an activation function applied to
         layers.append(nn.Linear(layers_nodes[-2], layers_nodes[-1]))
         
-        # this 'links' all the functions and layers we have gathered above in a list
+        # 'link' all the functions and layers we have gathered above in a list
         self.layers = nn.Sequential(*layers)
         
     def forward(self, x):

@@ -105,7 +105,7 @@ def model_evaluater(model: nn.Module, data, criterion):
     return np.average(running_loss)
                 
 class EarlyStopper():
-    """ This class checks if the loss function is still improving by certain criteria, specified at initialization """
+    """ This class checks if the loss function is still improving by certain criteria, specified at initialization of this class"""
     def __init__(self, patience = 1, min_delta = 0):
         self.patience = patience
         self.min_delta = min_delta

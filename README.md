@@ -27,7 +27,7 @@ The main.ipynb notebook file is build up in a list of steps explained below.
 ========================================================================================================================
 ## Code Improvements
 - Add in sample fitting, and plot the activation function per node with a range of parameter values as input. Through this, we can observe what 'activate' the node.
-- (no priority) pass optimizer and criterion as parameters in the estimation funciton
+- The realized volatility from the adviced website seems to have negligable correlations for lagged values. The models, both HAR and NN, thus don't capture any relation in the data.
 
 ## Q&A's
 - How can we extract the 5-minute high frequency data from the WRDS database.
@@ -37,7 +37,7 @@ The main.ipynb notebook file is build up in a list of steps explained below.
 - Are we supposed to perform the goodness-of-fit for the models (MSE, likelihood, R^2)?
 
 ## Feedback Enzo
-- Diebold-Moriano for comparing accuracy -> to be added
+- Diebold-Moriano for comparing accuracy -> added
 - Trade off complexity capturing highly non-linear relations, versus simplicity, estimation consistency and faster.
 - 2 Nodes (only option between input output) -> this is fixed
 - Activation function is IMPORTANT! Especially for insample estimation and analysis --> changed to sigmoid function
