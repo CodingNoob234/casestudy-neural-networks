@@ -8,11 +8,17 @@ from sklearn.model_selection import train_test_split
 import statsmodels.api as sm
     
 def pre_process_all_data(data, train_size = .8):
-    """ This functions computes for the HAR and NN the features and targets, splits them"""
+    """ 
+    This function computes for the HAR and NN the features and targets, splits them into training and testing.
+    The functions are quite alike, however if we for example want the give the neural network more lagged features, it is useful to seperate HAR and NN.
+    """
     
     def compute_targets(data):
-        """ this just returns the unchanged data, i.e. daily realized volatility """
-        return data
+        """ 
+        This just returns the unchanged data, i.e. daily realized volatility.
+        Can be changed to compute the 5 or 10 day volatility for example.
+        """
+        return data.copy()
     
     def compute_features_har(data):
         """ Compute previous daily, weekly and monthly realized volatility """
@@ -27,6 +33,7 @@ def pre_process_all_data(data, train_size = .8):
         return features
     
     def compute_features_nn(data):
+        """ Compute features for the neural network"""
         targets = compute_targets(data)
         features = np.zeros(shape=(len(data), 3))
         features[:,0] = targets.shift(1)
@@ -40,7 +47,7 @@ def pre_process_all_data(data, train_size = .8):
     
     return data_nn_train, data_nn_val, data_har_train, data_har_val
     
-def pre_process_data_har(data, feature_func, target_func, train_size = .8):
+def pre_process_data_har(data, feature_func, target_func, train_size):
     """ Computes the features (prev daily/weekly/monthly volatility) and targets (daily/weekly volatility) and returns them as train/validate datasets""" 
     # process features and targets
     targets = target_func(data).values.reshape(-1,1)
@@ -50,7 +57,7 @@ def pre_process_data_har(data, feature_func, target_func, train_size = .8):
     # to DataSet
     return split_and_to_dataset(features, targets, train_size=train_size, to_torch = False)
     
-def pre_process_data_nn(data, feature_func, target_func, train_size = .8):
+def pre_process_data_nn(data, feature_func, target_func, train_size):
     # process features and targets
     targets = target_func(data).values.reshape(-1,1)
     features = feature_func(data)
@@ -76,8 +83,8 @@ def split_and_to_dataset(features, targets, train_size = .8, to_torch = False):
 class DataSetNump(Dataset):
     """ Load the x,y data in a Dataset instance as numpy arrays """
     def __init__(self, x: np.ndarray, y: np.ndarray):
-        self.x = x
-        self.y = y
+        self.x = x.astype(dtype=np.float32)
+        self.y = y.astype(dtype=np.float32).reshape(-1)
         
     def __len__(self,):
         return len(self.y)

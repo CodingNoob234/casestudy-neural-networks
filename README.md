@@ -28,6 +28,7 @@ The main.ipynb notebook file is build up in a list of steps explained below.
 ## Code Improvements
 - Add in sample fitting, and plot the activation function per node with a range of parameter values as input. Through this, we can observe what 'activate' the node.
 - The realized volatility from the adviced website seems to have negligable correlations for lagged values. The models, both HAR and NN, thus don't capture any relation in the data.
+- The dataloaders weren't balanced before, now set to True.
 
 ## Q&A's
 - How can we extract the 5-minute high frequency data from the WRDS database.
