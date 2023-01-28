@@ -40,6 +40,7 @@ def get_tickers_in_data():
     return list(df.Symbol.unique())
 
 def plot_tickers_in_data():
+    """ This functions plots all figures """
     import matplotlib.pyplot as plt
     tickers = get_tickers_in_data()
     rvs = [get_rv_from_data(ticker) for ticker in tickers]
