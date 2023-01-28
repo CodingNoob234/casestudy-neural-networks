@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
-import torch.nn as nn    
+import torch.nn as nn
+import numpy as np
     
 class ForwardNeuralNetwork(nn.Module):
     """ The feed-forward neural network, with variable layers and nodes, depending on the given parameters at initialization """
@@ -22,8 +23,14 @@ class ForwardNeuralNetwork(nn.Module):
         # initialize the layers
         layers = []
         for i in range(len(layers_nodes[:-2])):
-            layers.append(nn.Linear(layers_nodes[i], layers_nodes[i+1]))
-            layers.append(activation_function())
+            layer = nn.Linear(layers_nodes[i], layers_nodes[i+1])
+            std = np.sqrt(2/input_size)
+            nn.init.normal_(layer.weight, mean = 0, std = std)
+            layer.weight = torch.min(layer.weight, 2 * std * torch.ones(layer.weight.shape))
+            layer.weight = torch.max(layer.weight, -2 * std * torch.ones(layer.weight.shape))
+            layers.append(layer)
+            # layers.append(nn.Linear(layers_nodes[i], layers_nodes[i+1]))
+            # layers.append(activation_function())
             
         # the last layer is our output layer, which should not have an activation function applied to
         layers.append(nn.Linear(layers_nodes[-2], layers_nodes[-1]))
