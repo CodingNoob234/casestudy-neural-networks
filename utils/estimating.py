@@ -1,5 +1,4 @@
 import numpy as np
-from copy import deepcopy
 
 import torch
 import torch.utils
@@ -13,6 +12,7 @@ from sklearn.model_selection import TimeSeriesSplit, train_test_split
 
 from statsmodels.regression.linear_model import OLS
 
+# own functions
 from utils.functions import reset_model_weights
 from utils.preprocessing import DataSet, DataSetNump
 from utils.modelbuilder import ForwardNeuralNetwork
@@ -25,24 +25,27 @@ def model_estimator(
     trainloader: DataLoader, 
     testloader = None, 
     earlystopper = None,
-    verbose: int = 0
+    verbose: int = 0,
     ):
     """
     This functions trains a neural network on training data, through gradient descent.
-    I.e. for a number of epochs, go through all batches in the trainloader.
-    For each batch a prediction is made, which is used to compute the gradient of the loss function for each parameter in the model.
-    After each batch, the parameters are update through this gradient, multiplied by some loss function. 
-    Some advanced methods like Adam can also be used, which still use the above explained steps as a basis.
+    In short, it will go through all batches in the trainloader for a number of epochs.
+    For each batch a prediction is made, which is used to compute the gradient of the loss function, for each parameter in the model.
+    After each batch, the parameters are update by this gradient, multiplied by some loss function. 
+    Some advanced methods like Adam can also be used, which still the principals of the above explained method.
     
     Some parameters might need some elaboration:
     - criterion: must be a loss function from torch, with parent class nn.Module
     - testloader: may be a torch dataloader with batches, or DataSet instance that holds the features/targets NOT divided in batches
-    - verbose: determines to what level intermediate results should be printed. Especially used in the early stage of building the model and code
+    - verbose: determines to what level intermediate results are be printed. Especially used in the early stage of building the model and code
+    - early_stopper_on_test: whether or not to apply the earlystopper on test or training data
     """
+    
+    train_loss_list = []
     
     for epoch in range(1, epochs+1):
         
-        train_running_loss = []
+        # train_running_loss = []
         for batch in trainloader:
             
             # each batch contains one set of features and one set of targets
@@ -63,30 +66,34 @@ def model_estimator(
             optimizer.step()
             
             # keep track of loss to log improvements of the fit
-            train_running_loss.append(loss.item())
-
-        # the in-sampe loss after performing one epoch; the criterion function averaged for each batch
-        train_running_loss = np.average(train_running_loss)
-        if verbose > 0:
-            print(f"epoch {epoch} - training loss: {train_running_loss}")
+            # train_running_loss.append(loss.item())
 
         # if testdata is also provided, compute the out-of-sample performance of the model
+        running_loss: bool
         if testloader:
             with torch.no_grad():
                 test_running_loss = model_evaluater(model, testloader, criterion)
                 if verbose > 0:
                     print(f"epoch {epoch} - validation loss: {test_running_loss}")
-                
-                # if an early stopper is provided, check if validation loss is still improving
-                # if not, stop the estimation
-                if earlystopper:
-                    if earlystopper.early_stop(test_running_loss):
-                        break
+                running_loss = test_running_loss
+        else:
+            with torch.no_grad():
+                train_running_loss = model_evaluater(model, trainloader, criterion)
+                train_loss_list.append(train_running_loss)
+                if verbose > 0:
+                    print(f"epoch {epoch} - training loss: {train_running_loss}")
+                running_loss = train_running_loss
+
+        # if an early stopper is provided, check if validation loss is still improving
+        # if not, stop the estimation
+        if earlystopper:
+            if earlystopper.early_stop(running_loss):
+                break
     
     # at the end of the estimation, return the last loss on the validation data
     if testloader:
         return test_running_loss, epoch
-    return train_running_loss, epoch
+    return min(train_loss_list), epoch
                     
                 
 def model_evaluater(model: nn.Module, data, criterion):
@@ -99,14 +106,14 @@ def model_evaluater(model: nn.Module, data, criterion):
         return np.average(resid**2)
         # return criterion(output, data.y_t)
         
-    # for all batches
+    # if batches instead of one large dataset
     running_loss = []
     
     for batch in data:
         batch_features, batch_targets = batch
         
         # predict
-        output = model(batch_features.float())
+        output = model(batch_features)
         
         # compute loss
         loss = criterion(output, batch_targets)
@@ -152,12 +159,14 @@ def kfolds_fit_and_evaluate_model(
     batch_size: int = 10,
     ):
     """ 
-    This functions executes as number of steps:
-    - initialise the model based on provided parameters
-    - divide sample in several "folds" through time
-    - for each kfold, get the training/testing data, normalise the data and put it into training/features dataloaders
-    - estimate the model
-    - predict the validation data and compute the accuracy
+    This functions executes a number of steps:
+    - divide sample in several "folds" through time, using TimeSeriesSplit
+    - for each fold
+        - initialise a neural network
+        - get the training/testing data, normalise the data (if required) and put it into training/features dataloaders
+        - train the model
+        - evaluate on the test data from the fold and append to a list
+    - return the average of all fold losses
     """
     # initialise model with provided specification
     score_nn = []
@@ -180,16 +189,22 @@ def kfolds_fit_and_evaluate_model(
 
 def single_fit_and_evaluate_model(
     model: nn.Module, 
-    data_train: DataSet,
-    data_test: DataSet,
     lr: float,
     epochs: int, 
+    data_train: DataSet,
+    data_test: DataSet = None,
     earlystopper: EarlyStopper = None,
     normalize_features: bool = False,
     return_prediction: bool = False,
     batch_size: int = 20,
     ):
-    """ Estimate a given neural network and return the criterion score on the validation data """
+    """ 
+    Estimation of a neural network can be generalized by a few parameters.
+    This function executes:
+    - train/test data to train/test loaders (batches)
+    - train model
+    - predict the testing data and return the loss
+    """
     # fit normalizer on train features and normalize both training and validation features
     if normalize_features:
         scaler = StandardScaler()
@@ -198,9 +213,9 @@ def single_fit_and_evaluate_model(
      
     # NOTE: SHOULD SHUFFLE BE TRUE OR FALSE, WAS FALSE UNTIL NOW
     loader_train = DataLoader(data_train, batch_size = batch_size, shuffle = True)
-    loader_test = DataLoader(data_test, batch_size = batch_size, shuffle = True)
+    loader_test = DataLoader(data_test, batch_size = batch_size, shuffle = True) if data_test else None
             
-    # initialize and estimate the model
+    # initialize and train the model
     criterion = nn.MSELoss()
     loss, epoch = model_estimator(
         model,
@@ -211,10 +226,9 @@ def single_fit_and_evaluate_model(
         testloader = data_test,
         earlystopper = earlystopper
     )
-        
+      
     # predict on full test data
     output: torch.Tensor = model(data_test.x_t)
-    
     # we want to use the EXACT same method for evaluation as in the HAR, some numerical differences where found between torch and numpy
     output_numpy: np.ndarray = output.detach().numpy().reshape(-1,)
     true_numpy: np.ndarray = data_test.y_t.detach().numpy().reshape(-1,)
@@ -234,7 +248,9 @@ def fit_and_evaluateHAR(
     data_test: DataSetNump, 
     normalize_features: bool = False,
     ):
-    """ this functions estimates the HAR model by simple OLS regression of 'todays' volatility on tomorrows'"""
+    """ 
+    this functions estimates the HAR model by simple OLS regression. Loss on testset is returned among the predictions itself.
+    """
     if normalize_features:
         scaler = StandardScaler()
         data_train.x = scaler.fit_transform(data_train.x)

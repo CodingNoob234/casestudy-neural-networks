@@ -23,13 +23,12 @@ class ForwardNeuralNetwork(nn.Module):
         # initialize the layers
         layers = []
         for i in range(len(layers_nodes[:-2])):
+            
+            # create layer, normalise and add to list
             layer = nn.Linear(layers_nodes[i], layers_nodes[i+1], bias = True)
             std = np.sqrt(2/input_size)
             nn.init.normal_(layer.weight, mean = 0, std = std)
-            # layer.weight = torch.min(layer.weight, 2 * std * torch.ones(layer.weight.shape))
-            # layer.weight = torch.max(layer.weight, -2 * std * torch.ones(layer.weight.shape))
             layers.append(layer)
-            # layers.append(nn.BatchNorm1d(layers_nodes[i+1]))
             layers.append(activation_function())
             
         # the last layer is our output layer, which should not have an activation function applied to

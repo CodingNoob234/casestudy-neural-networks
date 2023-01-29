@@ -1,6 +1,6 @@
 import numpy as np
-import torch
 
+import torch
 from torch.utils.data import Dataset
 
 from sklearn.model_selection import train_test_split
@@ -10,7 +10,7 @@ import statsmodels.api as sm
 def pre_process_all_data(data, train_size = None, test_size = None):
     """ 
     This function computes for the HAR and NN the features and targets, splits them into training and testing.
-    The functions are quite alike, however if we for example want the give the neural network more lagged features, it is useful to seperate HAR and NN.
+    The functions are quite alike, however if we for example want to give the neural network more lagged features, it is useful to have 2 seperate HAR and NN functions.
     """
     
     # check if either train size or test size is given
@@ -98,6 +98,7 @@ class DataSetNump(Dataset):
         return self.x[idx], self.y[idx]
     
     def split(self, train_index: list, test_index: list):
+        """ Build-in function to split data on given training and testing indices """
         data_train = DataSetNump(self.x[train_index], self.y[train_index])
         data_test = DataSetNump(self.x[test_index], self.y[test_index])
         return data_train, data_test
@@ -115,6 +116,7 @@ class DataSet(Dataset):
         return self.x_t[idx], self.y_t[idx]
     
     def split(self, train_index: list, test_index: list):
+        """ Build-in function to split data on given training and testing indices """
         data_train = DataSet(self.x_t[train_index], self.y_t[train_index])
         data_test = DataSet(self.x_t[test_index], self.y_t[test_index])
         return data_train, data_test
