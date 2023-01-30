@@ -181,7 +181,17 @@ def kfolds_fit_and_evaluate_model(
         data_train, data_test = data.split(train_index, test_index)
         
         # estimate the data
-        loss = single_fit_and_evaluate_model(model, data_train, data_test, lr, epochs, earlystopper, normalize_features, return_prediction=False, batch_size = batch_size)
+        loss = single_fit_and_evaluate_model(
+            model = model, 
+            data_train = data_train, 
+            data_test = data_test, 
+            lr = lr, 
+            epochs = epochs, 
+            earlystopper = earlystopper, 
+            normalize_features = normalize_features, 
+            return_prediction=False, 
+            batch_size = batch_size
+        )
         score_nn.append(loss)
     
     average_kfold_score = np.average(score_nn)
@@ -214,7 +224,7 @@ def single_fit_and_evaluate_model(
     # NOTE: SHOULD SHUFFLE BE TRUE OR FALSE, WAS FALSE UNTIL NOW
     loader_train = DataLoader(data_train, batch_size = batch_size, shuffle = True)
     loader_test = DataLoader(data_test, batch_size = batch_size, shuffle = True) if data_test else None
-            
+
     # initialize and train the model
     criterion = nn.MSELoss()
     loss, epoch = model_estimator(
