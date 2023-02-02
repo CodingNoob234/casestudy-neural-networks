@@ -1,5 +1,8 @@
+# standard import
+import math
 import numpy as np
 
+# ML
 import torch
 import torch.utils
 import torch.optim as optim
@@ -10,6 +13,7 @@ from torch.utils.data import DataLoader
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import TimeSeriesSplit, train_test_split
 
+# fitting HAR
 from statsmodels.regression.linear_model import OLS
 
 # own functions
@@ -17,6 +21,32 @@ from utils.functions import reset_model_weights
 from utils.preprocessing import DataSet, DataSetNump
 from utils.modelbuilder import ForwardNeuralNetwork
 
+class EarlyStopper():
+    """ This class checks if the loss function is still improving by certain criteria, specified at initialization of this class"""
+    def __init__(self, patience = 1, min_delta = 0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.min_validation_loss = np.inf
+        
+    def early_stop(self, validation_loss):
+        """ check if the validation loss has not increased for {patience}-times """
+        if validation_loss < self.min_validation_loss:
+            self.min_validation_loss = validation_loss
+            self.counter = 0
+        elif validation_loss > (self.min_validation_loss + self.min_delta):
+            self.counter += 1
+            if self.counter >= self.patience:
+                return True
+        return False
+    
+    def reset(self, ):
+        self.counter = 0
+        self.min_validation_loss = np.inf
+        
+    def __str__(self,):
+        return f"EarlyStopper(patience={self.patience},min_delta={self.min_delta})"
+        
 def model_estimator(
     model: nn.Module, 
     optimizer: optim.Optimizer, 
@@ -24,7 +54,7 @@ def model_estimator(
     epochs: int, 
     trainloader: DataLoader, 
     testloader = None, 
-    earlystopper = None,
+    earlystopper: EarlyStopper = None,
     verbose: int = 0,
     ):
     """
@@ -68,8 +98,8 @@ def model_estimator(
             # keep track of loss to log improvements of the fit
             # train_running_loss.append(loss.item())
 
-        # if testdata is also provided, compute the out-of-sample performance of the model
-        running_loss: bool
+        # after each epoch evaluate on test or trainloader
+        running_loss: float
         if testloader:
             with torch.no_grad():
                 test_running_loss = model_evaluater(model, testloader, criterion)
@@ -84,16 +114,16 @@ def model_estimator(
                     print(f"epoch {epoch} - training loss: {train_running_loss}")
                 running_loss = train_running_loss
 
-        # if an early stopper is provided, check if validation loss is still improving
-        # if not, stop the estimation
+        # if an early stopper is provided, check if loss is still improving
+        # if not, break the training loop
         if earlystopper:
             if earlystopper.early_stop(running_loss):
                 break
     
-    # at the end of the estimation, return the last loss on the validation data
+    # after all epochs, or when early stopped, return the last loss on the validation data
     if testloader:
         return test_running_loss, epoch
-    return min(train_loss_list), epoch
+    return train_running_loss, epoch
                     
                 
 def model_evaluater(model: nn.Module, data, criterion):
@@ -104,7 +134,6 @@ def model_evaluater(model: nn.Module, data, criterion):
         output = model(data.x_t).detach().numpy().reshape(-1,1)
         resid = data.y_t.detach().numpy().reshape(-1,1) - output
         return np.average(resid**2)
-        # return criterion(output, data.y_t)
         
     # if batches instead of one large dataset
     running_loss = []
@@ -123,28 +152,6 @@ def model_evaluater(model: nn.Module, data, criterion):
         
     # return the average loss
     return np.average(running_loss)
-                
-class EarlyStopper():
-    """ This class checks if the loss function is still improving by certain criteria, specified at initialization of this class"""
-    def __init__(self, patience = 1, min_delta = 0):
-        self.patience = patience
-        self.min_delta = min_delta
-        self.counter = 0
-        self.min_validation_loss = np.inf
-        
-    def early_stop(self, validation_loss):
-        """ check if the validation loss has not increased for {patience}-times """
-        if validation_loss < self.min_validation_loss:
-            self.min_validation_loss = validation_loss
-            self.counter = 0
-        elif validation_loss > (self.min_validation_loss + self.min_delta):
-            self.counter += 1
-            if self.counter >= self.patience:
-                return True
-        return False
-    
-    def reset(self, ):
-        self.counter = 0
 
 def kfolds_fit_and_evaluate_model(
     input_size: int,
@@ -175,7 +182,7 @@ def kfolds_fit_and_evaluate_model(
 
         # instantiate a new model, so the weights are randomly initialized with a new seed
         model = ForwardNeuralNetwork(input_size, output_size, hidden_layers)
-        if earlystopper: earlystopper.reset() # the early stopper must also be reset
+        if earlystopper: earlystopper.reset() # the early stopper must also be reset (counter, minimum loss)
 
         # split data into feature and target data for neural network
         data_train, data_test = data.split(train_index, test_index)

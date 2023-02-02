@@ -1,16 +1,12 @@
 import numpy as np
-
 import torch
 from torch.utils.data import Dataset
-
 from sklearn.model_selection import train_test_split
-
-import statsmodels.api as sm
     
 def pre_process_all_data(data, train_size = None, test_size = None):
     """ 
     This function computes for the HAR and NN the features and targets, splits them into training and testing.
-    The functions are quite alike, however if we for example want to give the neural network more lagged features, it is useful to have 2 seperate HAR and NN functions.
+    The feature functions for HAR and NN are quite alike, however if we want to give the neural network more lagged features for example, it is useful to have 2 seperate HAR and NN functions.
     """
     
     # check if either train size or test size is given
@@ -26,19 +22,24 @@ def pre_process_all_data(data, train_size = None, test_size = None):
     
     def compute_features_har(data):
         """ Compute previous daily, weekly and monthly realized volatility """
+        import statsmodels.api as sm
+        # the features are computed from the targets
         targets = compute_targets(data)
+        
         features = np.zeros(shape=(len(data), 3))
         features[:,0] = targets.shift(1)
         features[:,1] = targets.rolling(5).mean().shift(1)
         features[:,2] = targets.rolling(21).mean().shift(1)
         
-        # add constant for har features and drop nan values
+        # for the HAR (OLS) estimation, a column of ones is added to fit a constant
         features = sm.add_constant(features)
         return features
     
     def compute_features_nn(data):
         """ Compute features for the neural network"""
+        # the features are computed from the targets
         targets = compute_targets(data)
+        
         features = np.zeros(shape=(len(data), 3))
         features[:,0] = targets.shift(1)
         features[:,1] = targets.rolling(5).mean().shift(1)
@@ -109,7 +110,7 @@ class DataSet(Dataset):
         self.x_t = torch.tensor(x, dtype=torch.float32)
         self.y_t = torch.tensor(y, dtype=torch.float32)
         
-    def __len__(self, ):
+    def __len__(self,):
         return len(self.y_t)
     
     def __getitem__(self, idx: int):
